@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta charset="UTF-8" />
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script>
+      $(function () {
+
+        function SetNumber(class_name, p, get_text) {
+          var set_color = "";
+          if (class_name == "get_number") {
+            if (Number(get_text) < 11) {
+              set_color = "#FFE400";
+            } else if (Number(get_text) < 21) {
+              set_color = "#0000ED";
+            } else if (Number(get_text) < 31) {
+              set_color = "#ED0000";
+            } else if (Number(get_text) < 41) {
+              set_color = "#5D5D5D";
+            } else {
+              set_color = "#1DDB16";
+            }
+          } else {
+            set_color = "#FFA7A7";
+          }
+          var $span1 = "<span class='" + class_name + "' style='display:inline-block; width:40px; height:40px; border-radius:30px; background-color: " + set_color + "; text-align:center; line-height:40px; color:white; font-weight:bold; margin:5px;'>" + get_text + "</span>";
+          return p = $(p).append($span1);
+        }
+
+        var get_info = "<%=info%>";
+        if (get_info != "undefined") {
+          get_info = get_info.replace(/&#34;/g, "");
+          get_info = get_info.replace(/number/g, "\"number\"");
+          get_info = JSON.parse(get_info);
+
+          $(get_info).each(function (i, obj) {
+            var $p = "<p style='cursor:pointer;' class='week_number'>";
+            $(obj["number"]).each(function (j, result) {
+
+              $p = SetNumber("week_span_number", $p, result);
+            })
+            $("#this_number").append($p);
+          })
+        }
+
+        $("#set").click(function () {
+          $("#number").empty();
+
+          var number = 0;
+
+          while (number < 9) {
+            var array = new Array();
+            while (array.length < 6) {
+              var random_number = Math.floor(Math.random() * 45) + 1;
+              for (var i = 0; i < array.length; i++) {
+                var old_number = array[i];
+                if (random_number == old_number) {
+                  random_number = Math.floor(Math.random() * 45) + 1;
+                  i = -1;
+                }
+              }
+              array.push(random_number);
+            }
+
+            array.sort(function (a, b) { // 오름차순
+              return a - b;
+            });
+            var $p = "<p style='cursor:pointer;' class='choice_number'>";
+            for (var i = 0; i < array.length; i++) {
+              $p = SetNumber("get_number", $p, array[i]);
+            }
+            var $span2 = "<span style='display:inline-block; width:20px; height:20px; border-radius:30px; background-color: #031B47; text-align:center; line-height:15px; color:white; font-weight:bold; margin-left:35px; cursor:pointer;' class='close_btn'>x</span>";
+            $p = $($p).append($span2);
+            $("#number").append($p);
+            number++;
+          }
+        })
+
+        $(document).on("click", ".close_btn", function () {
+          $(this).parent().remove();
+        })
+
+        $(document).on("dblclick", ".choice_number", function () {
+          var duplicated_number = $(this).find(".get_number");
+          var $p = "<p style='cursor:pointer;' class='week_number'>";
+          $(duplicated_number).each(function (i, obj) {
+            $p = SetNumber("week_span_number", $p, $(obj).text());
+
+          })
+          $("#this_number").append($p);
+
+          SaveNumber();
+
+        })
+
+        function SaveNumber() {
+          var total_array = new Array();
+          var save_num = $("#this_number").find("p");
+          $(save_num).each(function (i, obj) {
+            var get_array = new Array();
+            var save_span = $(obj).find(".week_span_number");
+            $(save_span).each(function (j, text) {
+              get_array.push($(text).text());
+            })
+            total_array.push({ "number": get_array });
+          })
+
+          $.ajax({
+            url: '/GetNumber',
+            async: false,
+            type: "post",
+            dataType: 'text',
+            data: { "data": total_array },
+            success: function (result) {
+              console.log(result)
+            },
+            error: function (error) {
+              // 에러가 발생한 경우
+              console.log(error);
+            }
+          });
+        }
+
+        $(document).on("dblclick", ".week_number", function () {
+
+          $(this).remove();
+          SaveNumber();
+
+        })
+
+
+        $("#search_number").keydown(function (e) {
+
+          if (e.keyCode == 13) { // Enter key
+            var check_number = $(this).val().trim();
+            check_number = check_number.replace(/ +/g, " ");
+            check_number = check_number.split(" ");
+            if (check_number.length != 7) {
+              alert("please enter 7 numbers.");
+              return false;
+            }
+
+            $(check_number).each(function (i, obj) {
+              if (1 > Number(obj) || Number(obj) > 45) {
+                alert("Please enter a number between 1 and 45.");
+                return false;
+              }
+            })
+
+            var save_span = $("#this_number").find(".week_span_number");
+            $(save_span).each(function (j, text) {
+              $(check_number).each(function (i, obj) {
+                if (Number($(text).text()) == Number(obj)) {
+                  $(text).css('background-color', '#ED0000');
+                }
+              })
+            })
+
+          }
+        })
+
+      });
+  </script>
+</head>
+
+<body onselectstart="return false" ondragstart="return false">
+  <div style="width: 50%; margin: 0 auto; text-align: center; margin-bottom: 50px;">
+    <h2 style="color: #FFA7A7;">Lotto Numbers</h2>
+  </div>
+
+  <div style="width: 40%; margin: 0 auto; height: 700px; ">
+    <div style="width: 50%; float: left; overflow: auto; height: 100%;">
+      <button id='set'
+        style="width: 45%; cursor:pointer; float:right; height: 45px; outline: 0; border-radius: 15px; background-color: #F29661; border: 1px solid #F29661; color:white; font-size: large; font-weight: bold; margin-top: 45px;">setting</button>
+      <div id='number' style="width: 100%; float: left;"></div>
+
+    </div>
+    <div style="width: 49.5%; float: right; text-align: center; border-left:1px solid gainsboro;  height: 100%; overflow: auto;">
+      <input id="search_number" oninput="this.value = this.value.replace(/[^0-9\s]/g, '').replace(/(\..*)\./g, '$1');" style="width: 80%; height: 40px; margin: 0 auto; border-radius: 15px; outline: 0; border: 1px solid #D5D5D5; font-size: large;" placeholder="2 6 17 26 30 35 42">
+      <h3 style="color : #031B47;">this week</h3>
+      <div id="this_number" style="width: 100%;"></div>
+    </div>
+  </div>
+
+
+</body>
+
+</html>
