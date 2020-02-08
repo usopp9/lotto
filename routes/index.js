@@ -1,12 +1,23 @@
 var express = require('express');
 var router = express.Router();
 const fs = require('fs');
+var getApi = require("../modules/getApi");
+
 
 router.get('/', function (req, res, next) {
 
-  const article = fs.readFileSync("number.json");
-  res.render('index', { info: article });
+  getApi.GetNumber(req, res, function (err, docs) {
+    //number.json 파일 없으면 생성해줘야함
+    fs.exists('number.json', function (exists) {
+      if (exists) {
+        const article = fs.readFileSync("number.json").toString();
+        res.render('index', { info: article, weekNo: docs });
+      } else {
+        res.render('index', { info: "undefined", weekNo: docs });
+      }
+    });
 
+  })
 });
 
 router.post('/GetNumber', function (req, res, next) {
